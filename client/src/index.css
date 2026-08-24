@@ -105,7 +105,7 @@ button {
 /* ── App shell / layout ──────────────────────────────────────────────────── */
 .shell {
   display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
   min-height: 100vh;
 }
 
@@ -285,19 +285,59 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
   padding: 18px 20px;
   border-bottom: 1px solid var(--border-soft);
 }
 .card-head h3 { font-size: 16px; }
 .card-head .card-sub { font-size: 12.5px; color: var(--text-faint); margin-top: 2px; }
+.card-head .hstack { flex-wrap: wrap; justify-content: flex-end; }
 .card-body { padding: 20px; }
 .card-body.tight { padding: 8px; }
+
+/* Compact select that lives in a card header next to its action button. */
+.head-select {
+  height: 36px;
+  padding: 6px 30px 6px 10px;
+  font-size: 13.5px;
+  flex: 1 1 140px;
+  min-width: 0;
+  max-width: 200px;
+}
 
 .grid { display: grid; gap: 18px; }
 .grid-kpi { grid-template-columns: repeat(4, 1fr); }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .dash-cols { grid-template-columns: 1.5fr 1fr; align-items: start; }
+
+/* ── Overflow discipline ─────────────────────────────────────────────────────
+   Grid and flex children default to min-width:auto, so anything wide inside
+   one of them (a table, a chart, an unbroken name) inflates its track and
+   drags the whole page sideways. Giving them a real floor of 0 keeps wide
+   content where it belongs — scrolling inside .table-scroll — so the page
+   itself never scrolls horizontally.
+   -------------------------------------------------------------------------- */
+.grid > *,
+.stack > *,
+.card,
+.card-body,
+.table-scroll,
+.card-head > :first-child,
+.person,
+.person .who,
+.kv,
+.topbar > div {
+  min-width: 0;
+}
+.person .who .nm,
+.person .who .sub,
+.card-head h3,
+.kv .v,
+.kv .k {
+  overflow-wrap: anywhere;
+}
+.topbar h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Stat cards ──────────────────────────────────────────────────────────── */
 .stat {
@@ -358,6 +398,8 @@ button {
   border: 1px solid var(--border);
   font-size: 12.5px;
   color: var(--text-dim);
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
@@ -481,11 +523,14 @@ button {
 .chip .chip-x:hover { color: var(--saffron-strong); }
 
 /* ── Tables ──────────────────────────────────────────────────────────────── */
+/* A table may scroll inside its own card (never the page). Each table can
+   lower its comfortable floor with --tbl-min; below 860px the floor is
+   dropped entirely and rows restack as labelled cards. */
 .table-scroll { overflow-x: auto; }
 table.tbl {
   width: 100%;
   border-collapse: collapse;
-  min-width: 640px;
+  min-width: var(--tbl-min, 640px);
 }
 .tbl th {
   text-align: left;
@@ -509,6 +554,10 @@ table.tbl {
 .tbl tbody tr:hover { background: rgba(28, 37, 64, 0.5); }
 .tbl .right { text-align: right; }
 .tbl .muted { color: var(--text-dim); }
+/* Cell roles — used by the stacked card layout below 860px. */
+.tbl td.cell-check { width: 40px; }
+.tbl td.cell-runway { min-width: 140px; }
+.tbl td.cell-actions { white-space: nowrap; }
 
 .person { display: flex; align-items: center; gap: 11px; }
 .avatar {
@@ -623,7 +672,12 @@ table.tbl {
   flex-wrap: wrap;
   margin-bottom: 18px;
 }
-.toolbar .grow { flex: 1; min-width: 180px; }
+/* Filters share the row evenly and wrap instead of squeezing each other. */
+.toolbar > .search,
+.toolbar > .select { flex: 1 1 190px; min-width: 0; }
+.toolbar > .hstack { flex: 1 1 250px; min-width: 0; }
+.toolbar > .hstack .input { min-width: 0; }
+.toolbar .grow { flex: 1 1 200px; min-width: 0; }
 .row-actions { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
 
 .empty {
@@ -681,11 +735,38 @@ table.tbl {
 .rise-3 { animation-delay: 0.12s; }
 .rise-4 { animation-delay: 0.16s; }
 
-/* ── Drawer / responsive ─────────────────────────────────────────────────── */
+/* ── Drawer / responsive ─────────────────────────────────────────────────────
+   What changes, and where:
+     ≤1100px  landscape tablet / small laptop — paired cards go single-file,
+              the KPI grid halves, table cells tighten, secondary columns drop
+     ≤960px   the sidebar becomes a drawer behind the hamburger
+     ≤860px   data tables restack as labelled cards — nothing scrolls sideways
+     ≤620px   phones — one-column forms, full-width filters, tighter chrome
+     ≤460px   small phones — compact stat cards
+   -------------------------------------------------------------------------- */
 .scrim { display: none; }
 
+@media (max-width: 1100px) {
+  .grid-kpi { grid-template-columns: repeat(2, 1fr); }
+  .grid-2,
+  .dash-cols { grid-template-columns: minmax(0, 1fr); }
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .tbl th { padding: 11px 12px; }
+  .tbl td { padding: 11px 12px; }
+  /* When the card is only a hair narrower than the table's comfortable floor,
+     let the cells squeeze instead of showing a scrollbar. */
+  table.tbl { min-width: min(var(--tbl-min, 640px), 100%); }
+}
+
+/* Lower-priority columns step out while the table is still a table. Below
+   860px they return as labelled rows in the stacked layout, so nothing is
+   permanently hidden from the user. */
+@media (min-width: 861px) and (max-width: 1100px) {
+  .hide-md { display: none; }
+}
+
 @media (max-width: 960px) {
-  .shell { grid-template-columns: 1fr; }
+  .shell { grid-template-columns: minmax(0, 1fr); }
   .sidebar {
     position: fixed;
     left: 0; top: 0;
@@ -700,19 +781,127 @@ table.tbl {
     position: fixed; inset: 0; z-index: 35;
     background: rgba(6, 9, 17, 0.6); backdrop-filter: blur(2px);
   }
-  .grid-kpi { grid-template-columns: repeat(2, 1fr); }
-  .grid-3 { grid-template-columns: repeat(2, 1fr); }
-  .dash-cols { grid-template-columns: 1fr; }
+}
+
+/* ── Tables → stacked cards ──────────────────────────────────────────────────
+   Every cell carries its own heading in data-label, so the header row can be
+   dropped and each record reads top-to-bottom as a small card. This removes
+   the need for a 640px-wide table on phones and tablets entirely — which is
+   what caused the horizontal scrollbar.
+   -------------------------------------------------------------------------- */
+@media (max-width: 860px) {
+  .table-scroll { overflow-x: visible; }
+  .card-body.tight { padding: 12px; }
+
+  /* `table.tbl` (not `.tbl`) so this out-ranks the min() floor set above. */
+  table.tbl { display: block; min-width: 0; }
+  .tbl thead { display: none; }
+  .tbl tbody { display: grid; gap: 10px; }
+  .tbl tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    background: rgba(28, 37, 64, 0.32);
+  }
+  .tbl tbody tr:hover { background: rgba(28, 37, 64, 0.55); }
+  .tbl td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    min-width: 0;
+    padding: 5px 0;
+    border-bottom: none;
+    font-size: 13.5px;
+  }
+  .tbl td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .tbl td:not([data-label])::before,
+  .tbl td[data-label='']::before { content: none; }
+  .tbl td.right { text-align: left; }
+
+  /* Headline cell — the record's identity. No label, sits on top regardless
+     of where it falls in the column order. */
+  .tbl td.cell-main { order: -1; padding: 2px 0 10px; margin-bottom: 4px; }
+  .tbl td.cell-main,
+  .tbl tr:last-child td.cell-main { border-bottom: 1px dashed var(--border-soft); }
+  .tbl td.cell-main::before { content: none; }
+
+  /* Row buttons — right-aligned under a hairline, always last. */
+  .tbl td.cell-actions {
+    order: 1;
+    justify-content: flex-end;
+    padding: 10px 0 2px;
+    margin-top: 4px;
+    border-top: 1px dashed var(--border-soft);
+  }
+  .tbl td.cell-actions::before { content: none; }
+
+  /* The runway bar reads better full width, beneath its label. */
+  .tbl td.cell-runway {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .tbl td.cell-empty { justify-content: center; }
+
+  /* Reminders' pick list: checkbox + student on one line, runway below. */
+  .tbl.select-tbl tbody tr {
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: center;
+  }
+  .tbl.select-tbl td.cell-check { order: -2; padding: 0; }
+  .tbl.select-tbl td.cell-main,
+  .tbl.select-tbl tr:last-child td.cell-main {
+    padding: 0;
+    margin: 0;
+    border-bottom: none;
+  }
+  .tbl.select-tbl td.cell-runway { grid-column: 1 / -1; padding-top: 10px; }
 }
 
 @media (max-width: 620px) {
-  .grid-kpi { grid-template-columns: repeat(2, 1fr); }
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .form-grid { grid-template-columns: 1fr; }
-  .stat-value { font-size: 23px; }
+  .grid { gap: 14px; }
+  .grid-2, .grid-3 { grid-template-columns: minmax(0, 1fr); }
+  .form-grid { grid-template-columns: minmax(0, 1fr); }
+  .stat-value { font-size: 22px; }
   .content { padding: 16px; }
   .topbar h1 { font-size: 16px; }
   .topbar-sub { display: none; }
+  .topbar .chip { display: none; }
+  .page-head { margin-bottom: 18px; }
+  .card-head { padding: 15px 16px; }
+  .card-body { padding: 16px; }
+  /* Filters and header controls take a full line instead of crowding. */
+  .toolbar > *,
+  .toolbar .grow,
+  .head-select { flex-basis: 100%; max-width: none; }
+  .subject-filter .select { max-width: none; }
+  .overlay { padding: 3vh 12px; }
+  .modal-head, .modal-foot { padding: 14px 18px; }
+  .modal-body { padding: 18px; }
+}
+
+@media (max-width: 460px) {
+  .grid-kpi { gap: 12px; }
+  .stat { padding: 14px; }
+  .stat-label { font-size: 12px; }
+  .stat-value { font-size: 19px; }
+  .stat-icon { width: 32px; height: 32px; border-radius: 9px; }
+  .card-head .hstack { width: 100%; }
+  .card-head .hstack > * { flex: 1 1 auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

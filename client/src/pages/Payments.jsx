@@ -180,8 +180,8 @@ export default function Payments() {
               <tbody>
                 {rows.map((p) => (
                   <tr key={p._id}>
-                    <td className="muted">{formatDate(p.paidAt)}</td>
-                    <td>
+                    <td className="muted" data-label="Paid on">{formatDate(p.paidAt)}</td>
+                    <td className="cell-main">
                       {p.student ? (
                         <Link to={`/students/${p.student._id}`} className="link">
                           {p.student.name}
@@ -193,12 +193,12 @@ export default function Payments() {
                         <span className="tag-pill">{p.student.classPlan.name}</span>
                       )}
                     </td>
-                    <td className="muted">{monthLabel(p.forMonth)}</td>
-                    <td>
+                    <td className="muted" data-label="For month">{monthLabel(p.forMonth)}</td>
+                    <td data-label="Method">
                       <Badge tone="neutral">{p.method}</Badge>
                     </td>
-                    <td className="right num">{money(p.amount)}</td>
-                    <td className="right">
+                    <td className="right num" data-label="Amount">{money(p.amount)}</td>
+                    <td className="right cell-actions">
                       <Button
                         variant="subtle"
                         size="sm"

@@ -12,6 +12,8 @@
     "build": "npm --prefix client run build",
     "seed": "npm --prefix server run seed",
     "lint": "npm --prefix client run lint",
+    "verify:ui": "npm --prefix client run verify:ui",
+    "preview:ui": "node tools/gen-responsive-preview.mjs",
     "install:all": "npm install && npm --prefix server install && npm --prefix client install"
   },
   "devDependencies": {

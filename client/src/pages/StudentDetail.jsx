@@ -168,7 +168,7 @@ export default function StudentDetail() {
               />
             ) : (
               <div className="table-scroll">
-                <table className="tbl">
+                <table className="tbl" style={{ '--tbl-min': '460px' }}>
                   <thead>
                     <tr>
                       <th>Paid on</th>
@@ -181,18 +181,18 @@ export default function StudentDetail() {
                   <tbody>
                     {payments.map((p) => (
                       <tr key={p._id}>
-                        <td>
+                        <td className="cell-main">
                           {formatDate(p.paidAt)}
                           {p.renewed && (
                             <Badge tone="violet">renewed</Badge>
                           )}
                         </td>
-                        <td className="muted">{monthLabel(p.forMonth)}</td>
-                        <td className="right num">{money(p.amount)}</td>
-                        <td>
+                        <td className="muted" data-label="For month">{monthLabel(p.forMonth)}</td>
+                        <td className="right num" data-label="Amount">{money(p.amount)}</td>
+                        <td data-label="Method">
                           <Badge tone="neutral">{p.method}</Badge>
                         </td>
-                        <td className="right">
+                        <td className="right cell-actions">
                           <Button
                             variant="subtle"
                             size="sm"

@@ -224,7 +224,7 @@ export default function FeesPlans() {
             <EmptyState icon={GraduationCap} title="No classes yet" hint="Add classes from Nursery through Class 12." />
           ) : (
             <div className="table-scroll">
-              <table className="tbl" style={{ minWidth: 420 }}>
+              <table className="tbl" style={{ '--tbl-min': '420px' }}>
                 <thead>
                   <tr>
                     <th>Class</th>
@@ -235,9 +235,9 @@ export default function FeesPlans() {
                 <tbody>
                   {classes.map((c) => (
                     <tr key={c._id}>
-                      <td style={{ fontWeight: 600 }}>{c.name}</td>
-                      <td className="right num">{money(c.baseMonthlyFee)}</td>
-                      <td>
+                      <td className="cell-main" style={{ fontWeight: 600 }}>{c.name}</td>
+                      <td className="right num" data-label="Base fee / mo">{money(c.baseMonthlyFee)}</td>
+                      <td className="cell-actions">
                         <div className="row-actions">
                           <Button variant="subtle" size="sm" icon={Pencil} title="Edit" onClick={() => setClassModal(c)} />
                           <Button
@@ -261,11 +261,10 @@ export default function FeesPlans() {
           title="Subjects"
           subtitle={`${(subjects || []).length} subjects`}
           actions={
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div className="hstack wrap" style={{ gap: 8, flex: '1 1 auto', justifyContent: 'flex-end' }}>
               {(classes || []).length > 0 && (
                 <select
-                  className="select"
-                  style={{ height: 34, padding: '4px 10px', maxWidth: 170 }}
+                  className="select head-select"
                   value={subjFilter}
                   onChange={(e) => setSubjFilter(e.target.value)}
                 >
@@ -290,7 +289,7 @@ export default function FeesPlans() {
             <EmptyState icon={BookOpen} title="No subjects yet" hint="Add subjects with their monthly add-on fee." />
           ) : (
             <div className="table-scroll">
-              <table className="tbl" style={{ minWidth: 520 }}>
+              <table className="tbl" style={{ '--tbl-min': '520px' }}>
                 <thead>
                   <tr>
                     <th>Subject</th>
@@ -303,24 +302,28 @@ export default function FeesPlans() {
                 <tbody>
                   {shownSubjects.length === 0 ? (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-faint)', padding: '18px' }}>
+                      <td
+                        colSpan={5}
+                        className="cell-empty"
+                        style={{ textAlign: 'center', color: 'var(--text-faint)', padding: '18px' }}
+                      >
                         No subjects for this class yet.
                       </td>
                     </tr>
                   ) : (
                     shownSubjects.map((s) => (
                       <tr key={s._id}>
-                        <td>
+                        <td className="cell-main">
                           <span style={{ fontWeight: 600 }}>{s.name}</span>
                           {s.code && <span className="tag-pill">{s.code}</span>}
                         </td>
-                        <td>
+                        <td data-label="Class">
                           {s.classPlan?.name || (
                             <span style={{ color: 'var(--text-faint)' }}>—</span>
                           )}
                         </td>
-                        <td className="right num">{money(s.addOnFee)}</td>
-                        <td>
+                        <td className="right num" data-label="Add-on / mo">{money(s.addOnFee)}</td>
+                        <td data-label="Status">
                           {s.active !== false ? (
                             <Badge tone="active" dot>
                               Active
@@ -329,7 +332,7 @@ export default function FeesPlans() {
                             <Badge tone="neutral">Hidden</Badge>
                           )}
                         </td>
-                        <td>
+                        <td className="cell-actions">
                           <div className="row-actions">
                             <Button variant="subtle" size="sm" icon={Pencil} title="Edit" onClick={() => setSubjectModal(s)} />
                             <Button

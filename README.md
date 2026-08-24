@@ -203,6 +203,16 @@ Run from the repository root:
 | `npm start`            | Start the API (serves `client/dist` if it exists) |
 | `npm run seed`         | Reset and load demo data into MongoDB |
 | `npm run lint`         | Lint the client |
+| `npm run verify:ui`    | Static check of the responsive layout (JSX parses, table cells carry their `data-label`, CSS breakpoints intact) |
+| `npm run preview:ui`   | Regenerate `responsive-preview.html` — open it in a browser to see the real stylesheet at 360 / 390 / 768 / 834 / 1024 / 1280 px |
+
+---
+
+## Responsive layout
+
+The UI is designed dark-first and mobile-first, and no viewport should ever scroll sideways. The breakpoint ladder lives in one place, `client/src/index.css`, documented at the top of its media-query section: at 1100px paired cards go single-file and table cells tighten, at 960px the sidebar becomes a drawer behind the hamburger, at 860px data tables restack as labelled cards, at 620px forms and filters go full width, and at 460px the KPI cards compact.
+
+The stacked table layout is worth knowing about before editing a table. Below 860px the header row is hidden and each row becomes a small card, so every cell prints its own heading from its `data-label` attribute — a new column needs both a `<th>` and a matching `data-label` on its `<td>`. Four cell roles control the card: `cell-main` is the record's identity and floats to the top without a label, `cell-actions` is the button row pinned to the bottom, `cell-runway` gives the subscription bar its own full-width line, and `cell-check` is the Reminders checkbox. A table that reads comfortably at less than the default 640px floor can lower it with `style={{ '--tbl-min': '460px' }}` rather than an inline `minWidth`, which would out-rank the stylesheet. `npm run verify:ui` enforces all of this.
 
 ---
 

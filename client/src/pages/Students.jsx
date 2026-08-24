@@ -128,17 +128,17 @@ export default function Students() {
                 <tr>
                   <th>Student</th>
                   <th>Class</th>
-                  <th>Subjects</th>
+                  <th className="hide-md">Subjects</th>
                   <th className="right">Fee / mo</th>
                   <th>Subscription</th>
-                  <th>Status</th>
+                  <th className="hide-md">Status</th>
                   <th className="right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((s) => (
                   <tr key={s._id}>
-                    <td>
+                    <td className="cell-main">
                       <Link to={`/students/${s._id}`} className="person" style={{ color: 'inherit' }}>
                         <div className="avatar">{initials(s.name)}</div>
                         <div className="who">
@@ -147,18 +147,18 @@ export default function Students() {
                         </div>
                       </Link>
                     </td>
-                    <td className="muted">{s.classPlan?.name || '—'}</td>
-                    <td className="muted">
+                    <td className="muted" data-label="Class">{s.classPlan?.name || '—'}</td>
+                    <td className="muted hide-md" data-label="Subjects">
                       <Badge tone="neutral">{s.subjects?.length || 0}</Badge>
                     </td>
-                    <td className="right num">{money(s.monthlyFee)}</td>
-                    <td style={{ minWidth: 150 }}>
+                    <td className="right num" data-label="Fee / mo">{money(s.monthlyFee)}</td>
+                    <td className="cell-runway" data-label="Subscription">
                       <SubscriptionBar days={s.remainingDays} />
                     </td>
-                    <td>
+                    <td className="hide-md" data-label="Status">
                       <StatusBadge status={s.subscriptionStatus} />
                     </td>
-                    <td>
+                    <td className="cell-actions">
                       <div className="row-actions">
                         <Button
                           variant="subtle"

@@ -13,8 +13,16 @@ const TOKENS = ['parentName', 'studentName', 'class', 'days', 'endDate', 'fee', 
 
 function ChannelRow({ icon: Icon, label, configured, detail }) {
   return (
-    <div className="hstack" style={{ justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border-soft)' }}>
-      <div className="hstack" style={{ gap: 12 }}>
+    <div
+      className="hstack wrap"
+      style={{
+        justifyContent: 'space-between',
+        gap: 10,
+        padding: '12px 0',
+        borderBottom: '1px solid var(--border-soft)',
+      }}
+    >
+      <div className="hstack" style={{ gap: 12, minWidth: 0 }}>
         <span
           className="stat-icon"
           style={

@@ -76,13 +76,12 @@ export default function Reminders() {
           subtitle={`Subscriptions expiring within the window`}
           actions={
             <select
-              className="select"
+              className="select head-select"
               value={within}
               onChange={(e) => {
                 setWithin(Number(e.target.value));
                 setSelected([]);
               }}
-              style={{ minWidth: 150 }}
             >
               <option value={3}>Next 3 days</option>
               <option value={7}>Next 7 days</option>
@@ -118,11 +117,11 @@ export default function Reminders() {
                 </span>
               </label>
               <div className="table-scroll">
-                <table className="tbl" style={{ minWidth: 520 }}>
+                <table className="tbl select-tbl">
                   <tbody>
                     {list.map((s) => (
                       <tr key={s._id}>
-                        <td style={{ width: 40 }}>
+                        <td className="cell-check">
                           <input
                             type="checkbox"
                             checked={selected.includes(s._id)}
@@ -130,7 +129,7 @@ export default function Reminders() {
                             style={{ accentColor: 'var(--saffron)' }}
                           />
                         </td>
-                        <td>
+                        <td className="cell-main">
                           <Link to={`/students/${s._id}`} className="person" style={{ color: 'inherit' }}>
                             <div className="avatar">{initials(s.name)}</div>
                             <div className="who">
@@ -139,7 +138,7 @@ export default function Reminders() {
                             </div>
                           </Link>
                         </td>
-                        <td style={{ minWidth: 150 }}>
+                        <td className="cell-runway" data-label="Subscription">
                           <SubscriptionBar days={s.remainingDays} />
                         </td>
                       </tr>
@@ -166,7 +165,7 @@ export default function Reminders() {
               {logs.map((l) => (
                 <div key={l._id} className="expiry-row" style={{ gridTemplateColumns: '1fr auto' }}>
                   <div>
-                    <div className="hstack" style={{ gap: 8 }}>
+                    <div className="hstack wrap" style={{ gap: 8 }}>
                       <span style={{ fontWeight: 600 }}>{l.student?.name || 'Unknown'}</span>
                       <Badge tone={LOG_TONE[l.status] || 'neutral'}>{l.status}</Badge>
                       <Badge tone="neutral">{l.channel}</Badge>
