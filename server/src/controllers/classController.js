@@ -1,5 +1,6 @@
 import ClassPlan from '../models/ClassPlan.js';
 import Student from '../models/Student.js';
+import Subject from '../models/Subject.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 
@@ -49,5 +50,8 @@ export const deleteClass = asyncHandler(async (req, res) => {
   }
   const deleted = await ClassPlan.findByIdAndDelete(req.params.id);
   if (!deleted) throw new ApiError(404, 'Class not found');
-  res.json({ message: 'Class deleted' });
+  // Class removed and no students depend on it — clean up its (config-only)
+  // subjects so they aren't left pointing at a class that no longer exists.
+  await Subject.deleteMany({ classPlan: req.params.id });
+  res.json({ message: 'Class and its subjects deleted' });
 });

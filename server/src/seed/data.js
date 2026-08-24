@@ -1,8 +1,8 @@
 /**
- * Seed content for VidyaSetu. Fees are monthly, in the configured currency
- * (₹ by default). Student subscription end dates are expressed as an offset in
- * days from "today" so the seeded data always contains a realistic mix of
- * active / expiring / expired subscriptions whenever you run it.
+ * Seed content for Tution Management. Fees are monthly, in the configured
+ * currency (₹ by default). Student subscription end dates are expressed as an
+ * offset in days from "today" so the seeded data always contains a realistic
+ * mix of active / expiring / expired subscriptions whenever you run it.
  */
 
 export const classes = [
@@ -23,23 +23,80 @@ export const classes = [
   { name: 'Class 12', order: 15, baseMonthlyFee: 3500 },
 ];
 
-export const subjects = [
-  { name: 'English', code: 'ENG', addOnFee: 300 },
-  { name: 'Hindi', code: 'HIN', addOnFee: 250 },
-  { name: 'Mathematics', code: 'MATH', addOnFee: 400 },
-  { name: 'EVS', code: 'EVS', addOnFee: 250 },
-  { name: 'Science', code: 'SCI', addOnFee: 400 },
-  { name: 'Social Studies', code: 'SST', addOnFee: 300 },
-  { name: 'Computer', code: 'CS', addOnFee: 350 },
-  { name: 'Sanskrit', code: 'SAN', addOnFee: 200 },
-  { name: 'Drawing', code: 'ART', addOnFee: 200 },
-  { name: 'Physics', code: 'PHY', addOnFee: 500 },
-  { name: 'Chemistry', code: 'CHEM', addOnFee: 500 },
-  { name: 'Biology', code: 'BIO', addOnFee: 500 },
-  { name: 'Accountancy', code: 'ACC', addOnFee: 500 },
-  { name: 'Business Studies', code: 'BST', addOnFee: 450 },
-  { name: 'Economics', code: 'ECO', addOnFee: 450 },
+/**
+ * Subjects are class-scoped: every class gets its own copy of a subject, with
+ * an add-on fee that grows with the band. The same name (e.g. "Mathematics")
+ * therefore exists many times over — once per class — each priced for its level.
+ */
+const SUBJECT_BANDS = [
+  {
+    classes: ['Nursery', 'LKG', 'UKG'],
+    subjects: [
+      { name: 'English', code: 'ENG', addOnFee: 150 },
+      { name: 'Hindi', code: 'HIN', addOnFee: 150 },
+      { name: 'Mathematics', code: 'MATH', addOnFee: 150 },
+      { name: 'EVS', code: 'EVS', addOnFee: 120 },
+      { name: 'Drawing', code: 'ART', addOnFee: 120 },
+      { name: 'Rhymes', code: 'RHY', addOnFee: 100 },
+    ],
+  },
+  {
+    classes: ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5'],
+    subjects: [
+      { name: 'English', code: 'ENG', addOnFee: 250 },
+      { name: 'Hindi', code: 'HIN', addOnFee: 200 },
+      { name: 'Mathematics', code: 'MATH', addOnFee: 300 },
+      { name: 'EVS', code: 'EVS', addOnFee: 250 },
+      { name: 'Science', code: 'SCI', addOnFee: 300 },
+      { name: 'Computer', code: 'CS', addOnFee: 250 },
+      { name: 'Drawing', code: 'ART', addOnFee: 150 },
+    ],
+  },
+  {
+    classes: ['Class 6', 'Class 7', 'Class 8'],
+    subjects: [
+      { name: 'English', code: 'ENG', addOnFee: 300 },
+      { name: 'Hindi', code: 'HIN', addOnFee: 250 },
+      { name: 'Mathematics', code: 'MATH', addOnFee: 400 },
+      { name: 'Science', code: 'SCI', addOnFee: 400 },
+      { name: 'Social Studies', code: 'SST', addOnFee: 300 },
+      { name: 'Sanskrit', code: 'SAN', addOnFee: 200 },
+      { name: 'Computer', code: 'CS', addOnFee: 300 },
+    ],
+  },
+  {
+    classes: ['Class 9', 'Class 10'],
+    subjects: [
+      { name: 'English', code: 'ENG', addOnFee: 350 },
+      { name: 'Hindi', code: 'HIN', addOnFee: 300 },
+      { name: 'Mathematics', code: 'MATH', addOnFee: 450 },
+      { name: 'Science', code: 'SCI', addOnFee: 500 },
+      { name: 'Social Studies', code: 'SST', addOnFee: 350 },
+      { name: 'Computer', code: 'CS', addOnFee: 350 },
+    ],
+  },
+  {
+    classes: ['Class 11', 'Class 12'],
+    subjects: [
+      { name: 'English', code: 'ENG', addOnFee: 400 },
+      { name: 'Physics', code: 'PHY', addOnFee: 600 },
+      { name: 'Chemistry', code: 'CHEM', addOnFee: 600 },
+      { name: 'Mathematics', code: 'MATH', addOnFee: 600 },
+      { name: 'Biology', code: 'BIO', addOnFee: 600 },
+      { name: 'Accountancy', code: 'ACC', addOnFee: 550 },
+      { name: 'Business Studies', code: 'BST', addOnFee: 500 },
+      { name: 'Economics', code: 'ECO', addOnFee: 500 },
+      { name: 'Computer', code: 'CS', addOnFee: 400 },
+    ],
+  },
 ];
+
+// Flattened to one entry per (class, subject), tagged with its class name.
+export const subjects = SUBJECT_BANDS.flatMap((band) =>
+  band.classes.flatMap((className) =>
+    band.subjects.map((s) => ({ class: className, ...s }))
+  )
+);
 
 export const students = [
   { name: 'Aarav Sharma', parentName: 'Rajesh Sharma', gender: 'male', phone: '9876500011', class: 'Class 5', subjects: ['Mathematics', 'Science', 'English'], plan: 'quarterly', endOffsetDays: 6 },

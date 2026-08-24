@@ -17,7 +17,7 @@ export const ClassesAPI = {
 };
 
 export const SubjectsAPI = {
-  list: () => api.get('/subjects').then((r) => r.data),
+  list: (params) => api.get('/subjects', { params }).then((r) => r.data),
   create: (body) => api.post('/subjects', body).then((r) => r.data),
   update: (id, body) => api.put(`/subjects/${id}`, body).then((r) => r.data),
   remove: (id) => api.delete(`/subjects/${id}`).then((r) => r.data),

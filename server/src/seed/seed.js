@@ -31,10 +31,33 @@ async function run() {
     Settings.deleteMany({}),
   ]);
 
+  // Subjects are now class-scoped ({ classPlan, name } unique). Older databases
+  // may still carry the previous global unique index on `name`, which would
+  // reject the same subject name appearing under several classes. Reconcile the
+  // indexes with the current schema (drops the stale one) before inserting.
+  await Subject.syncIndexes();
+
   const classDocs = await ClassPlan.insertMany(classes);
-  const subjectDocs = await Subject.insertMany(subjects);
   const classByName = new Map(classDocs.map((c) => [c.name, c]));
-  const subjectByName = new Map(subjectDocs.map((s) => [s.name, s]));
+
+  // Attach each seed subject to its class, then insert.
+  const subjectDocs = await Subject.insertMany(
+    subjects.map((s) => ({
+      name: s.name,
+      code: s.code,
+      addOnFee: s.addOnFee,
+      classPlan: classByName.get(s.class)._id,
+      active: true,
+    }))
+  );
+
+  // Look subjects up by "ClassName::SubjectName" so each student resolves the
+  // subject priced for their own class.
+  const subjectByClassAndName = new Map();
+  subjectDocs.forEach((doc) => {
+    const cls = classDocs.find((c) => String(c._id) === String(doc.classPlan));
+    if (cls) subjectByClassAndName.set(`${cls.name}::${doc.name}`, doc);
+  });
 
   await Settings.create({ key: 'app', instituteName: env.instituteName });
 
@@ -43,7 +66,9 @@ async function run() {
 
   for (const s of studentSeeds) {
     const cls = classByName.get(s.class);
-    const subs = s.subjects.map((n) => subjectByName.get(n)).filter(Boolean);
+    const subs = s.subjects
+      .map((n) => subjectByClassAndName.get(`${s.class}::${n}`))
+      .filter(Boolean);
     const fees = computeFees(cls.baseMonthlyFee, subs);
     const end = daysFromNow(s.endOffsetDays);
     const start = addMonths(end, -planToMonths(s.plan));

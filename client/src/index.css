@@ -452,6 +452,34 @@ button {
 .check .fee { font-size: 12px; color: var(--text-faint); }
 .check.on .fee { color: var(--saffron); }
 
+/* ── Class-filtered subject picker ───────────────────────────────────────── */
+.subject-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 2px 0 12px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+.subject-filter .select { max-width: 260px; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 14px; }
+.chip .chip-sub { color: var(--text-faint); }
+.chip .chip-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 1px;
+  line-height: 1;
+  border-radius: 6px;
+}
+.chip .chip-x:hover { color: var(--saffron-strong); }
+
 /* ── Tables ──────────────────────────────────────────────────────────────── */
 .table-scroll { overflow-x: auto; }
 table.tbl {

@@ -73,9 +73,12 @@ function ClassModal({ initial, onClose, onSaved }) {
   );
 }
 
-function SubjectModal({ initial, onClose, onSaved }) {
+function SubjectModal({ initial, classes, onClose, onSaved }) {
   const [name, setName] = useState(initial?.name || '');
   const [code, setCode] = useState(initial?.code || '');
+  const [classPlan, setClassPlan] = useState(
+    initial?.classPlan?._id || initial?.classPlan || ''
+  );
   const [addOnFee, setAddOnFee] = useState(initial?.addOnFee ?? 0);
   const [active, setActive] = useState(initial?.active ?? true);
   const [saving, setSaving] = useState(false);
@@ -83,11 +86,13 @@ function SubjectModal({ initial, onClose, onSaved }) {
 
   async function submit() {
     if (!name.trim()) return toast.error('Subject name is required');
+    if (!classPlan) return toast.error('Please choose the class this subject belongs to');
     setSaving(true);
     try {
       const body = {
         name: name.trim(),
         code: code.trim() || undefined,
+        classPlan,
         addOnFee: Number(addOnFee),
         active,
       };
@@ -121,6 +126,16 @@ function SubjectModal({ initial, onClose, onSaved }) {
       <div className="form-grid">
         <Field label="Subject name" className="full">
           <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Mathematics" />
+        </Field>
+        <Field label="Class" className="full">
+          <select className="select" value={classPlan} onChange={(e) => setClassPlan(e.target.value)}>
+            <option value="">Select a class…</option>
+            {(classes || []).map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="Code (optional)">
           <input className="input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. MATH" />
@@ -157,8 +172,14 @@ export default function FeesPlans() {
 
   const [classModal, setClassModal] = useState(null); // {} for new, obj for edit
   const [subjectModal, setSubjectModal] = useState(null);
+  const [subjFilter, setSubjFilter] = useState(''); // filter subjects table by class
   const [del, setDel] = useState(null); // { kind, item }
   const [deleting, setDeleting] = useState(false);
+
+  const classIdOf = (s) => s.classPlan?._id || s.classPlan || '';
+  const shownSubjects = (subjects || []).filter(
+    (s) => !subjFilter || classIdOf(s) === subjFilter
+  );
 
   async function confirmDelete() {
     if (!del) return;
@@ -240,9 +261,26 @@ export default function FeesPlans() {
           title="Subjects"
           subtitle={`${(subjects || []).length} subjects`}
           actions={
-            <Button variant="primary" size="sm" icon={Plus} onClick={() => setSubjectModal({})}>
-              Add subject
-            </Button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {(classes || []).length > 0 && (
+                <select
+                  className="select"
+                  style={{ height: 34, padding: '4px 10px', maxWidth: 170 }}
+                  value={subjFilter}
+                  onChange={(e) => setSubjFilter(e.target.value)}
+                >
+                  <option value="">All classes</option>
+                  {classes.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <Button variant="primary" size="sm" icon={Plus} onClick={() => setSubjectModal({})}>
+                Add subject
+              </Button>
+            </div>
           }
           bodyClass="tight"
         >
@@ -252,46 +290,60 @@ export default function FeesPlans() {
             <EmptyState icon={BookOpen} title="No subjects yet" hint="Add subjects with their monthly add-on fee." />
           ) : (
             <div className="table-scroll">
-              <table className="tbl" style={{ minWidth: 460 }}>
+              <table className="tbl" style={{ minWidth: 520 }}>
                 <thead>
                   <tr>
                     <th>Subject</th>
+                    <th>Class</th>
                     <th className="right">Add-on / mo</th>
                     <th>Status</th>
                     <th className="right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {subjects.map((s) => (
-                    <tr key={s._id}>
-                      <td>
-                        <span style={{ fontWeight: 600 }}>{s.name}</span>
-                        {s.code && <span className="tag-pill">{s.code}</span>}
-                      </td>
-                      <td className="right num">{money(s.addOnFee)}</td>
-                      <td>
-                        {s.active !== false ? (
-                          <Badge tone="active" dot>
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge tone="neutral">Hidden</Badge>
-                        )}
-                      </td>
-                      <td>
-                        <div className="row-actions">
-                          <Button variant="subtle" size="sm" icon={Pencil} title="Edit" onClick={() => setSubjectModal(s)} />
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            icon={Trash2}
-                            title="Delete"
-                            onClick={() => setDel({ kind: 'subject', item: s })}
-                          />
-                        </div>
+                  {shownSubjects.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-faint)', padding: '18px' }}>
+                        No subjects for this class yet.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    shownSubjects.map((s) => (
+                      <tr key={s._id}>
+                        <td>
+                          <span style={{ fontWeight: 600 }}>{s.name}</span>
+                          {s.code && <span className="tag-pill">{s.code}</span>}
+                        </td>
+                        <td>
+                          {s.classPlan?.name || (
+                            <span style={{ color: 'var(--text-faint)' }}>—</span>
+                          )}
+                        </td>
+                        <td className="right num">{money(s.addOnFee)}</td>
+                        <td>
+                          {s.active !== false ? (
+                            <Badge tone="active" dot>
+                              Active
+                            </Badge>
+                          ) : (
+                            <Badge tone="neutral">Hidden</Badge>
+                          )}
+                        </td>
+                        <td>
+                          <div className="row-actions">
+                            <Button variant="subtle" size="sm" icon={Pencil} title="Edit" onClick={() => setSubjectModal(s)} />
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              icon={Trash2}
+                              title="Delete"
+                              onClick={() => setDel({ kind: 'subject', item: s })}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -303,7 +355,12 @@ export default function FeesPlans() {
         <ClassModal initial={classModal} onClose={() => setClassModal(null)} onSaved={refetchClasses} />
       )}
       {subjectModal && (
-        <SubjectModal initial={subjectModal} onClose={() => setSubjectModal(null)} onSaved={refetchSubjects} />
+        <SubjectModal
+          initial={subjectModal}
+          classes={classes || []}
+          onClose={() => setSubjectModal(null)}
+          onSaved={refetchSubjects}
+        />
       )}
       {del && (
         <ConfirmDialog

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Save, ArrowLeft, BookOpen } from 'lucide-react';
+import { Save, ArrowLeft, BookOpen, X } from 'lucide-react';
 import { useApi } from '../hooks/useApi.js';
 import { StudentsAPI, ClassesAPI, SubjectsAPI } from '../api/endpoints.js';
 import { useSettings } from '../context/SettingsContext.jsx';
@@ -48,6 +48,9 @@ export default function StudentForm() {
 
   const [form, setForm] = useState(EMPTY);
   const [chosen, setChosen] = useState([]);
+  // Which class's subjects the picker is currently showing. Defaults to the
+  // student's class, but can be switched to browse/add subjects from any class.
+  const [subjectClassFilter, setSubjectClassFilter] = useState('');
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
@@ -69,6 +72,12 @@ export default function StudentForm() {
     }
   }, [existing]);
 
+  // Keep the subject picker pointed at the student's class by default; changing
+  // the class snaps the picker back to it (you can then switch it manually).
+  useEffect(() => {
+    if (form.classPlan) setSubjectClassFilter(form.classPlan);
+  }, [form.classPlan]);
+
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const toggleSubject = (sid) =>
     setChosen((c) => (c.includes(sid) ? c.filter((x) => x !== sid) : [...c, sid]));
@@ -87,6 +96,16 @@ export default function StudentForm() {
     if (!form.subscriptionStart) return null;
     return addMonths(new Date(form.subscriptionStart), PLAN_MONTHS[form.plan] || 1);
   }, [form.subscriptionStart, form.plan]);
+
+  // Lookups for rendering the selected-subject chips (which span all classes).
+  const classById = useMemo(
+    () => new Map((classes || []).map((c) => [c._id, c])),
+    [classes]
+  );
+  const subjectById = useMemo(
+    () => new Map((subjects || []).map((s) => [s._id, s])),
+    [subjects]
+  );
 
   function validate() {
     const e = {};
@@ -135,6 +154,13 @@ export default function StudentForm() {
   }
 
   const activeSubjects = (subjects || []).filter((s) => s.active !== false);
+  const classIdOf = (s) => s.classPlan?._id || s.classPlan || '';
+  const hasLegacy = activeSubjects.some((s) => !classIdOf(s));
+  const visibleSubjects = activeSubjects.filter((s) =>
+    subjectClassFilter === '__general'
+      ? !classIdOf(s)
+      : classIdOf(s) === subjectClassFilter
+  );
 
   return (
     <form onSubmit={onSubmit}>
@@ -216,30 +242,93 @@ export default function StudentForm() {
                   No subjects defined yet. Add some under Classes &amp; Fees first.
                 </div>
               ) : (
-                <div className="check-grid">
-                  {activeSubjects.map((s) => {
-                    const on = chosen.includes(s._id);
-                    return (
-                      <div
-                        key={s._id}
-                        className={`check ${on ? 'on' : ''}`}
-                        onClick={() => toggleSubject(s._id)}
-                        role="checkbox"
-                        aria-checked={on}
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            toggleSubject(s._id);
-                          }
-                        }}
-                      >
-                        <span>{s.name}</span>
-                        <span className="fee">+{money(s.addOnFee)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                <>
+                  {/* Selected subjects — shown across every class so you never
+                      lose sight of picks made under another class. */}
+                  {chosen.length > 0 && (
+                    <div className="chip-row">
+                      {chosen.map((sid) => {
+                        const s = subjectById.get(sid);
+                        if (!s) return null;
+                        const cls = classById.get(classIdOf(s));
+                        return (
+                          <span key={sid} className="chip">
+                            {s.name}
+                            <span className="chip-sub">
+                              {cls ? cls.name : 'General'} · +{money(s.addOnFee)}
+                            </span>
+                            <button
+                              type="button"
+                              className="chip-x"
+                              aria-label={`Remove ${s.name}`}
+                              title="Remove"
+                              onClick={() => toggleSubject(sid)}
+                            >
+                              <X size={13} />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Class filter — defaults to the student's class; switch it to
+                      add subjects from any other class too. */}
+                  <div className="subject-filter">
+                    <span>Showing subjects for</span>
+                    <select
+                      className="select"
+                      value={subjectClassFilter}
+                      onChange={(e) => setSubjectClassFilter(e.target.value)}
+                    >
+                      {!form.classPlan && <option value="">Select a class…</option>}
+                      {(classes || []).map((c) => (
+                        <option key={c._id} value={c._id}>
+                          {c.name}
+                          {c._id === form.classPlan ? ' (enrolled class)' : ''}
+                        </option>
+                      ))}
+                      {hasLegacy && <option value="__general">General (no class)</option>}
+                    </select>
+                  </div>
+
+                  {!subjectClassFilter ? (
+                    <div className="callout">
+                      <BookOpen size={18} />
+                      Pick a class above to see its subjects.
+                    </div>
+                  ) : visibleSubjects.length === 0 ? (
+                    <div className="callout">
+                      <BookOpen size={18} />
+                      No subjects for this class yet. Add some under Classes &amp; Fees.
+                    </div>
+                  ) : (
+                    <div className="check-grid">
+                      {visibleSubjects.map((s) => {
+                        const on = chosen.includes(s._id);
+                        return (
+                          <div
+                            key={s._id}
+                            className={`check ${on ? 'on' : ''}`}
+                            onClick={() => toggleSubject(s._id)}
+                            role="checkbox"
+                            aria-checked={on}
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                toggleSubject(s._id);
+                              }
+                            }}
+                          >
+                            <span>{s.name}</span>
+                            <span className="fee">+{money(s.addOnFee)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </Card>
