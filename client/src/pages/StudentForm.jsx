@@ -1,0 +1,329 @@
+import { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { Save, ArrowLeft, BookOpen } from 'lucide-react';
+import { useApi } from '../hooks/useApi.js';
+import { StudentsAPI, ClassesAPI, SubjectsAPI } from '../api/endpoints.js';
+import { useSettings } from '../context/SettingsContext.jsx';
+import Card from '../components/ui/Card.jsx';
+import Button from '../components/ui/Button.jsx';
+import Field from '../components/ui/Field.jsx';
+import { Loading } from '../components/ui/Loader.jsx';
+import { PLAN_OPTIONS, PLAN_MONTHS } from '../lib/constants.js';
+import { toDateInput, formatDate } from '../lib/format.js';
+
+/** Local mirror of the server's month-add logic, for the end-date preview. */
+function addMonths(date, n) {
+  const d = new Date(date);
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + n);
+  if (d.getDate() < day) d.setDate(0);
+  return d;
+}
+
+const EMPTY = {
+  name: '',
+  parentName: '',
+  parentPhone: '',
+  gender: '',
+  classPlan: '',
+  plan: 'monthly',
+  subscriptionStart: toDateInput(new Date()),
+  status: 'active',
+  notes: '',
+};
+
+export default function StudentForm() {
+  const { id } = useParams();
+  const isEdit = Boolean(id);
+  const navigate = useNavigate();
+  const { money } = useSettings();
+
+  const { data: classes, loading: loadingClasses } = useApi(() => ClassesAPI.list(), []);
+  const { data: subjects, loading: loadingSubjects } = useApi(() => SubjectsAPI.list(), []);
+  const { data: existing, loading: loadingStudent } = useApi(
+    () => (isEdit ? StudentsAPI.get(id) : Promise.resolve(null)),
+    [id]
+  );
+
+  const [form, setForm] = useState(EMPTY);
+  const [chosen, setChosen] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  // Prefill when editing.
+  useEffect(() => {
+    if (existing) {
+      setForm({
+        name: existing.name || '',
+        parentName: existing.parentName || '',
+        parentPhone: existing.parentPhone || '',
+        gender: existing.gender || '',
+        classPlan: existing.classPlan?._id || '',
+        plan: existing.plan || 'monthly',
+        subscriptionStart: toDateInput(existing.subscriptionStart),
+        status: existing.status || 'active',
+        notes: existing.notes || '',
+      });
+      setChosen((existing.subjects || []).map((s) => s._id));
+    }
+  }, [existing]);
+
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const toggleSubject = (sid) =>
+    setChosen((c) => (c.includes(sid) ? c.filter((x) => x !== sid) : [...c, sid]));
+
+  // Live fee + subscription preview.
+  const { baseFee, subjectsFee, monthlyFee } = useMemo(() => {
+    const cls = (classes || []).find((c) => c._id === form.classPlan);
+    const base = cls?.baseMonthlyFee || 0;
+    const sf = (subjects || [])
+      .filter((s) => chosen.includes(s._id))
+      .reduce((sum, s) => sum + (s.addOnFee || 0), 0);
+    return { baseFee: base, subjectsFee: sf, monthlyFee: base + sf };
+  }, [classes, subjects, form.classPlan, chosen]);
+
+  const endPreview = useMemo(() => {
+    if (!form.subscriptionStart) return null;
+    return addMonths(new Date(form.subscriptionStart), PLAN_MONTHS[form.plan] || 1);
+  }, [form.subscriptionStart, form.plan]);
+
+  function validate() {
+    const e = {};
+    if (!form.name.trim()) e.name = 'Student name is required';
+    if (!form.parentName.trim()) e.parentName = 'Parent name is required';
+    if (!form.parentPhone.trim()) e.parentPhone = 'A contact number is required';
+    if (!form.classPlan) e.classPlan = 'Select a class';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  }
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    if (!validate()) {
+      toast.error('Please fix the highlighted fields');
+      return;
+    }
+    setSaving(true);
+    const body = {
+      name: form.name.trim(),
+      parentName: form.parentName.trim(),
+      parentPhone: form.parentPhone.trim(),
+      gender: form.gender || undefined,
+      classPlan: form.classPlan,
+      subjects: chosen,
+      plan: form.plan,
+      subscriptionStart: form.subscriptionStart,
+      status: form.status,
+      notes: form.notes.trim() || undefined,
+    };
+    try {
+      const saved = isEdit
+        ? await StudentsAPI.update(id, body)
+        : await StudentsAPI.create(body);
+      toast.success(isEdit ? 'Student updated' : `${saved.name} enrolled`);
+      navigate(`/students/${saved._id}`);
+    } catch (err) {
+      toast.error(err.message || 'Could not save student');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loadingClasses || loadingSubjects || (isEdit && loadingStudent)) {
+    return <Loading label="Loading form…" />;
+  }
+
+  const activeSubjects = (subjects || []).filter((s) => s.active !== false);
+
+  return (
+    <form onSubmit={onSubmit}>
+      <div className="page-head">
+        <div>
+          <div className="eyebrow">{isEdit ? 'Edit' : 'Admissions'}</div>
+          <h2>{isEdit ? `Edit ${existing?.name || 'student'}` : 'Enroll a student'}</h2>
+          <p>Pick a class and the subjects taken — the monthly fee is calculated for you.</p>
+        </div>
+        <Link to={isEdit ? `/students/${id}` : '/students'}>
+          <Button variant="subtle" icon={ArrowLeft}>
+            Cancel
+          </Button>
+        </Link>
+      </div>
+
+      <div className="grid dash-cols">
+        <div className="stack">
+          <Card title="Student & parent">
+            <div className="form-grid">
+              <Field label="Student name" error={errors.name} className="full">
+                <input
+                  className="input"
+                  value={form.name}
+                  onChange={set('name')}
+                  placeholder="e.g. Aarav Sharma"
+                />
+              </Field>
+              <Field label="Parent / guardian" error={errors.parentName}>
+                <input
+                  className="input"
+                  value={form.parentName}
+                  onChange={set('parentName')}
+                  placeholder="e.g. Meena Sharma"
+                />
+              </Field>
+              <Field label="Contact number" error={errors.parentPhone} hint="Used for reminders">
+                <input
+                  className="input"
+                  value={form.parentPhone}
+                  onChange={set('parentPhone')}
+                  placeholder="10-digit mobile"
+                />
+              </Field>
+              <Field label="Gender (optional)">
+                <select className="select" value={form.gender} onChange={set('gender')}>
+                  <option value="">Prefer not to say</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </Field>
+              <Field label="Status">
+                <select className="select" value={form.status} onChange={set('status')}>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </Field>
+            </div>
+          </Card>
+
+          <Card title="Class & subjects" subtitle="Base fee comes from the class; each subject adds on">
+            <Field label="Class" error={errors.classPlan}>
+              <select className="select" value={form.classPlan} onChange={set('classPlan')}>
+                <option value="">Select a class…</option>
+                {(classes || []).map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name} — {money(c.baseMonthlyFee)}/mo
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <div className="field">
+              <label>Subjects</label>
+              {activeSubjects.length === 0 ? (
+                <div className="callout warn">
+                  <BookOpen size={18} />
+                  No subjects defined yet. Add some under Classes &amp; Fees first.
+                </div>
+              ) : (
+                <div className="check-grid">
+                  {activeSubjects.map((s) => {
+                    const on = chosen.includes(s._id);
+                    return (
+                      <div
+                        key={s._id}
+                        className={`check ${on ? 'on' : ''}`}
+                        onClick={() => toggleSubject(s._id)}
+                        role="checkbox"
+                        aria-checked={on}
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleSubject(s._id);
+                          }
+                        }}
+                      >
+                        <span>{s.name}</span>
+                        <span className="fee">+{money(s.addOnFee)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card title="Subscription">
+            <div className="form-grid">
+              <Field label="Plan">
+                <select className="select" value={form.plan} onChange={set('plan')}>
+                  {PLAN_OPTIONS.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label} ({p.months} mo)
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Start date">
+                <input
+                  type="date"
+                  className="input"
+                  value={form.subscriptionStart}
+                  onChange={set('subscriptionStart')}
+                />
+              </Field>
+              <Field label="Notes (optional)" className="full">
+                <textarea
+                  className="textarea"
+                  value={form.notes}
+                  onChange={set('notes')}
+                  placeholder="Anything worth remembering about this student…"
+                />
+              </Field>
+            </div>
+          </Card>
+        </div>
+
+        {/* Live summary */}
+        <Card title="Fee summary" subtitle="Updates as you choose">
+          <div className="breakdown">
+            <div className="row">
+              <span className="k">Class base fee</span>
+              <span className="v">{money(baseFee)}</span>
+            </div>
+            <div className="row">
+              <span className="k">
+                Subjects <span style={{ color: 'var(--text-faint)' }}>× {chosen.length}</span>
+              </span>
+              <span className="v">{money(subjectsFee)}</span>
+            </div>
+            <div className="row total">
+              <span className="k">Monthly fee</span>
+              <span className="v">{money(monthlyFee)}</span>
+            </div>
+          </div>
+
+          <div className="divider" style={{ margin: '18px 0' }} />
+
+          <div className="kv" style={{ gap: 10 }}>
+            <div className="hstack" style={{ justifyContent: 'space-between' }}>
+              <span className="k">Plan</span>
+              <span className="v" style={{ fontSize: 14 }}>
+                {PLAN_OPTIONS.find((p) => p.value === form.plan)?.label}
+              </span>
+            </div>
+            <div className="hstack" style={{ justifyContent: 'space-between' }}>
+              <span className="k">Renews on</span>
+              <span className="v" style={{ fontSize: 14 }}>
+                {endPreview ? formatDate(endPreview) : '—'}
+              </span>
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            variant="primary"
+            icon={Save}
+            block
+            disabled={saving}
+            className="mt-0"
+            style={{ marginTop: 20 }}
+          >
+            {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Enroll student'}
+          </Button>
+        </Card>
+      </div>
+    </form>
+  );
+}
