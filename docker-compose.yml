@@ -12,8 +12,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: vidyasetu:latest
-    container_name: vidyasetu
+    image: tusharsahni22/study-shed:latest
+    container_name: study-shed
     restart: unless-stopped
     ports:
       - "5000:5000"

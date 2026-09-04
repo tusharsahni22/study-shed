@@ -887,7 +887,7 @@ table.tbl {
   /* Filters and header controls take a full line instead of crowding. */
   .toolbar > *,
   .toolbar .grow,
-  .head-select { flex-basis: 100%; max-width: none; font-size: 11px; }
+  .head-select { flex-basis: 100%; max-width: none; font-size: 10px; }
   .subject-filter .select { max-width: none; }
   .overlay { padding: 3vh 12px; }
   .modal-head, .modal-foot { padding: 14px 18px; }
