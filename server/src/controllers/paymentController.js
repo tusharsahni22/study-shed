@@ -61,14 +61,17 @@ export const createPayment = asyncHandler(async (req, res) => {
   });
 
   // Optionally extend the subscription (renewal). We extend from whichever is
-  // later — today or the current end date — so early renewals don't lose days.
+  // later — today or the current end date — anchored to the student's joining day.
   if (renew) {
     const plan = renewPlan || student.plan || 'monthly';
     const base =
       student.subscriptionEnd && new Date(student.subscriptionEnd) > new Date()
         ? new Date(student.subscriptionEnd)
         : new Date();
-    student.subscriptionEnd = addMonths(base, planToMonths(plan));
+    const anchorDay = student.subscriptionStart
+      ? new Date(student.subscriptionStart).getDate()
+      : undefined;
+    student.subscriptionEnd = addMonths(base, planToMonths(plan), anchorDay);
     student.plan = plan;
     if (student.status === 'inactive') student.status = 'active';
     await student.save();

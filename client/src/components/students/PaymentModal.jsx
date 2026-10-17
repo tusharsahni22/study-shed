@@ -1,13 +1,23 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { IndianRupee } from 'lucide-react';
 import Modal from '../ui/Modal.jsx';
 import Button from '../ui/Button.jsx';
 import Field from '../ui/Field.jsx';
 import { PaymentsAPI } from '../../api/endpoints.js';
-import { PAYMENT_METHODS, PLAN_OPTIONS } from '../../lib/constants.js';
+import { PAYMENT_METHODS, PLAN_OPTIONS, PLAN_MONTHS } from '../../lib/constants.js';
 import { useSettings } from '../../context/SettingsContext.jsx';
-import { toDateInput } from '../../lib/format.js';
+import { toDateInput, formatDate } from '../../lib/format.js';
+
+function addMonths(date, n, anchorDay) {
+  const d = new Date(date);
+  const targetDay = anchorDay ?? d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + n);
+  const maxDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(targetDay, maxDay));
+  return d;
+}
 
 function currentMonthKey() {
   const d = new Date();
@@ -24,6 +34,20 @@ export default function PaymentModal({ student, onClose, onSaved }) {
   const [renew, setRenew] = useState(false);
   const [renewPlan, setRenewPlan] = useState(student?.plan || 'monthly');
   const [saving, setSaving] = useState(false);
+
+  const previewEndDate = useMemo(() => {
+    if (!student) return null;
+    const plan = renewPlan || student.plan || 'monthly';
+    const months = PLAN_MONTHS[plan] || 1;
+    const base =
+      student.subscriptionEnd && new Date(student.subscriptionEnd) > new Date()
+        ? new Date(student.subscriptionEnd)
+        : new Date();
+    const anchorDay = student.subscriptionStart
+      ? new Date(student.subscriptionStart).getDate()
+      : undefined;
+    return addMonths(base, months, anchorDay);
+  }, [student, renewPlan]);
 
   async function submit() {
     if (amount === '' || Number(amount) < 0) {
@@ -125,15 +149,22 @@ export default function PaymentModal({ student, onClose, onSaved }) {
       </label>
 
       {renew && (
-        <Field label="Renew for" className="mt-0" style={{ marginTop: 14 }}>
-          <select className="select" value={renewPlan} onChange={(e) => setRenewPlan(e.target.value)}>
-            {PLAN_OPTIONS.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label} ({p.months} mo)
-              </option>
-            ))}
-          </select>
-        </Field>
+        <>
+          <Field label="Renew for" className="mt-0" style={{ marginTop: 14 }}>
+            <select className="select" value={renewPlan} onChange={(e) => setRenewPlan(e.target.value)}>
+              {PLAN_OPTIONS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label} ({p.months} mo)
+                </option>
+              ))}
+            </select>
+          </Field>
+          {previewEndDate && (
+            <div style={{ marginTop: 10, fontSize: 13, color: 'var(--emerald)' }}>
+              New renewal date will be: <strong>{formatDate(previewEndDate)}</strong>
+            </div>
+          )}
+        </>
       )}
     </Modal>
   );

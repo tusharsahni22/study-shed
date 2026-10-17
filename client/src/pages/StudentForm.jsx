@@ -13,9 +13,9 @@ import { PLAN_OPTIONS, PLAN_MONTHS } from '../lib/constants.js';
 import { toDateInput, formatDate } from '../lib/format.js';
 
 /** Local mirror of the server's month-add logic, for the end-date preview. */
-function addMonths(date, n) {
+function addMonths(date, n, anchorDay) {
   const d = new Date(date);
-  const targetDay = d.getDate();
+  const targetDay = anchorDay ?? d.getDate();
   d.setDate(1);
   d.setMonth(d.getMonth() + n);
   const maxDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
@@ -31,6 +31,7 @@ const EMPTY = {
   classPlan: '',
   plan: 'monthly',
   subscriptionStart: toDateInput(new Date()),
+  subscriptionEnd: '',
   status: 'active',
   notes: '',
 };
@@ -67,6 +68,7 @@ export default function StudentForm() {
         classPlan: existing.classPlan?._id || '',
         plan: existing.plan || 'monthly',
         subscriptionStart: toDateInput(existing.subscriptionStart),
+        subscriptionEnd: toDateInput(existing.subscriptionEnd),
         status: existing.status || 'active',
         notes: existing.notes || '',
       });
@@ -95,9 +97,10 @@ export default function StudentForm() {
   }, [classes, subjects, form.classPlan, chosen]);
 
   const endPreview = useMemo(() => {
+    if (form.subscriptionEnd) return new Date(form.subscriptionEnd);
     if (!form.subscriptionStart) return null;
     return addMonths(new Date(form.subscriptionStart), PLAN_MONTHS[form.plan] || 1);
-  }, [form.subscriptionStart, form.plan]);
+  }, [form.subscriptionEnd, form.subscriptionStart, form.plan]);
 
   // Lookups for rendering the selected-subject chips (which span all classes).
   const classById = useMemo(
@@ -135,6 +138,7 @@ export default function StudentForm() {
       subjects: chosen,
       plan: form.plan,
       subscriptionStart: form.subscriptionStart,
+      subscriptionEnd: form.subscriptionEnd || undefined,
       status: form.status,
       notes: form.notes.trim() || undefined,
     };
@@ -352,6 +356,14 @@ export default function StudentForm() {
                   className="input"
                   value={form.subscriptionStart}
                   onChange={set('subscriptionStart')}
+                />
+              </Field>
+              <Field label="Renews on" hint={isEdit ? 'Current renewal date (can be corrected)' : 'Auto-calculated if left blank'}>
+                <input
+                  type="date"
+                  className="input"
+                  value={form.subscriptionEnd}
+                  onChange={set('subscriptionEnd')}
                 />
               </Field>
               <Field label="Notes (optional)" className="full">
