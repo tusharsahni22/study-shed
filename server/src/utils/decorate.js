@@ -6,9 +6,12 @@ import { remainingDays, subscriptionStatus } from './subscription.js';
  */
 export function decorateStudent(obj, leadDays = 7) {
   if (!obj) return obj;
+  const isCustomStatus = obj.status === 'paused' || obj.status === 'inactive';
   return {
     ...obj,
     remainingDays: remainingDays(obj.subscriptionEnd),
-    subscriptionStatus: subscriptionStatus(obj.subscriptionEnd, leadDays),
+    subscriptionStatus: isCustomStatus
+      ? obj.status
+      : subscriptionStatus(obj.subscriptionEnd, leadDays),
   };
 }

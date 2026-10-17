@@ -10,6 +10,8 @@ import {
   Phone,
   User,
   Receipt,
+  PauseCircle,
+  PlayCircle,
 } from 'lucide-react';
 import { useApi } from '../hooks/useApi.js';
 import { StudentsAPI, PaymentsAPI } from '../api/endpoints.js';
@@ -50,6 +52,8 @@ export default function StudentDetail() {
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [payToDelete, setPayToDelete] = useState(null);
+  const [confirmPause, setConfirmPause] = useState(false);
+  const [togglingStatus, setTogglingStatus] = useState(false);
 
   if (loading || !student) return <Loading label="Loading profile…" />;
 
@@ -59,6 +63,25 @@ export default function StudentDetail() {
   function afterChange() {
     refetch();
     refetchPayments();
+  }
+
+  async function togglePause() {
+    const nextStatus = student.status === 'paused' ? 'active' : 'paused';
+    setTogglingStatus(true);
+    try {
+      await StudentsAPI.update(id, { status: nextStatus });
+      toast.success(
+        nextStatus === 'paused'
+          ? 'Membership paused (student on leave)'
+          : 'Membership resumed (student active)'
+      );
+      setConfirmPause(false);
+      afterChange();
+    } catch (e) {
+      toast.error(e.message || 'Could not update membership status');
+    } finally {
+      setTogglingStatus(false);
+    }
   }
 
   async function doDelete() {
@@ -111,6 +134,25 @@ export default function StudentDetail() {
           </div>
         </div>
         <div className="hstack wrap">
+          {student.status === 'paused' ? (
+            <Button
+              variant="ghost"
+              icon={PlayCircle}
+              onClick={togglePause}
+              disabled={togglingStatus}
+            >
+              Resume membership
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              icon={PauseCircle}
+              onClick={() => setConfirmPause(true)}
+              disabled={togglingStatus}
+            >
+              Pause membership
+            </Button>
+          )}
           <Button variant="ghost" icon={Send} onClick={() => setShowRemind(true)}>
             Remind
           </Button>
@@ -288,6 +330,17 @@ export default function StudentDetail() {
       )}
       {showRemind && (
         <ReminderModal students={[student]} onClose={() => setShowRemind(false)} />
+      )}
+      {confirmPause && (
+        <ConfirmDialog
+          title="Pause membership?"
+          message={`Mark ${student.name}'s membership as paused / on leave? Reminders will be paused and you can renew with a fresh restart date whenever they return.`}
+          confirmLabel="Pause membership"
+          variant="subtle"
+          busy={togglingStatus}
+          onConfirm={togglePause}
+          onClose={() => !togglingStatus && setConfirmPause(false)}
+        />
       )}
       {confirmDel && (
         <ConfirmDialog

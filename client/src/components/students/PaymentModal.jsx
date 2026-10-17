@@ -33,12 +33,20 @@ export default function PaymentModal({ student, onClose, onSaved }) {
   const [note, setNote] = useState('');
   const [renew, setRenew] = useState(false);
   const [renewPlan, setRenewPlan] = useState(student?.plan || 'monthly');
+  const [useRestartDate, setUseRestartDate] = useState(student?.status === 'paused');
+  const [restartDate, setRestartDate] = useState(toDateInput(new Date()));
   const [saving, setSaving] = useState(false);
 
   const previewEndDate = useMemo(() => {
     if (!student) return null;
     const plan = renewPlan || student.plan || 'monthly';
     const months = PLAN_MONTHS[plan] || 1;
+
+    if (useRestartDate && restartDate) {
+      const r = new Date(restartDate);
+      return addMonths(r, months, r.getDate());
+    }
+
     const base =
       student.subscriptionEnd && new Date(student.subscriptionEnd) > new Date()
         ? new Date(student.subscriptionEnd)
@@ -47,7 +55,7 @@ export default function PaymentModal({ student, onClose, onSaved }) {
       ? new Date(student.subscriptionStart).getDate()
       : undefined;
     return addMonths(base, months, anchorDay);
-  }, [student, renewPlan]);
+  }, [student, renewPlan, useRestartDate, restartDate]);
 
   async function submit() {
     if (amount === '' || Number(amount) < 0) {
@@ -65,6 +73,7 @@ export default function PaymentModal({ student, onClose, onSaved }) {
         note: note.trim() || undefined,
         renew,
         renewPlan: renew ? renewPlan : undefined,
+        restartDate: renew && useRestartDate && restartDate ? restartDate : undefined,
       });
       toast.success(renew ? 'Payment recorded & subscription renewed' : 'Payment recorded');
       onSaved?.();
@@ -159,8 +168,32 @@ export default function PaymentModal({ student, onClose, onSaved }) {
               ))}
             </select>
           </Field>
+
+          <label className={`check ${useRestartDate ? 'on' : ''}`} style={{ marginTop: 10 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="checkbox"
+                checked={useRestartDate}
+                onChange={(e) => setUseRestartDate(e.target.checked)}
+                style={{ accentColor: 'var(--saffron)' }}
+              />
+              Renew from a new restart date (e.g. after a month leave / break)
+            </span>
+          </label>
+
+          {useRestartDate && (
+            <Field label="Restart date" hint="Sets the new joining / starting date and anchors renewal to this day" style={{ marginTop: 10 }}>
+              <input
+                type="date"
+                className="input"
+                value={restartDate}
+                onChange={(e) => setRestartDate(e.target.value)}
+              />
+            </Field>
+          )}
+
           {previewEndDate && (
-            <div style={{ marginTop: 10, fontSize: 13, color: 'var(--emerald)' }}>
+            <div style={{ marginTop: 12, fontSize: 13, color: 'var(--emerald)', background: 'var(--emerald-soft)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
               New renewal date will be: <strong>{formatDate(previewEndDate)}</strong>
             </div>
           )}

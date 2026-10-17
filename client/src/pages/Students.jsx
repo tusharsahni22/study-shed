@@ -96,6 +96,7 @@ export default function Students() {
         <select className="select" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">Any status</option>
           <option value="active">Active</option>
+          <option value="paused">On leave (Paused)</option>
           <option value="inactive">Inactive</option>
         </select>
         <select className="select" value={sort} onChange={(e) => setSort(e.target.value)}>

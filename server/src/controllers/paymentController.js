@@ -35,10 +35,19 @@ export const getStudentPayments = asyncHandler(async (req, res) => {
 });
 
 // POST /api/payments
-// body: { student, amount, method, forMonth, note, paidAt, renew, renewPlan }
+// body: { student, amount, method, forMonth, note, paidAt, renew, renewPlan, restartDate }
 export const createPayment = asyncHandler(async (req, res) => {
-  const { student: studentId, amount, method, forMonth, note, paidAt, renew, renewPlan } =
-    req.body;
+  const {
+    student: studentId,
+    amount,
+    method,
+    forMonth,
+    note,
+    paidAt,
+    renew,
+    renewPlan,
+    restartDate,
+  } = req.body;
 
   if (!studentId) throw new ApiError(400, 'Student is required');
   if (amount === undefined || Number(amount) < 0) {
@@ -60,20 +69,31 @@ export const createPayment = asyncHandler(async (req, res) => {
     renewed: Boolean(renew),
   });
 
-  // Optionally extend the subscription (renewal). We extend from whichever is
-  // later — today or the current end date — anchored to the student's joining day.
+  // Optionally extend or restart the subscription (renewal).
   if (renew) {
     const plan = renewPlan || student.plan || 'monthly';
-    const base =
-      student.subscriptionEnd && new Date(student.subscriptionEnd) > new Date()
-        ? new Date(student.subscriptionEnd)
-        : new Date();
-    const anchorDay = student.subscriptionStart
-      ? new Date(student.subscriptionStart).getDate()
-      : undefined;
-    student.subscriptionEnd = addMonths(base, planToMonths(plan), anchorDay);
+    const planMonths = planToMonths(plan);
+
+    if (restartDate) {
+      // User entered an explicit restart date: anchor to this new date
+      const restart = new Date(restartDate);
+      student.subscriptionStart = restart;
+      student.subscriptionEnd = addMonths(restart, planMonths, restart.getDate());
+    } else {
+      // Standard renewal: extend from whichever is later — today or the current end date —
+      // anchored to the student's joining day.
+      const base =
+        student.subscriptionEnd && new Date(student.subscriptionEnd) > new Date()
+          ? new Date(student.subscriptionEnd)
+          : new Date();
+      const anchorDay = student.subscriptionStart
+        ? new Date(student.subscriptionStart).getDate()
+        : undefined;
+      student.subscriptionEnd = addMonths(base, planMonths, anchorDay);
+    }
+
     student.plan = plan;
-    if (student.status === 'inactive') student.status = 'active';
+    student.status = 'active';
     await student.save();
   }
 

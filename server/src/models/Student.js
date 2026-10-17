@@ -27,7 +27,7 @@ const studentSchema = new mongoose.Schema(
     subscriptionStart: { type: Date, default: () => new Date() },
     subscriptionEnd: { type: Date, required: true },
 
-    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+    status: { type: String, enum: ['active', 'inactive', 'paused'], default: 'active' },
     notes: { type: String, trim: true },
   },
   { timestamps: true }

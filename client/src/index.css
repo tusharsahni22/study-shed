@@ -384,6 +384,7 @@ button {
 .badge.active { color: var(--emerald); background: var(--emerald-soft); border-color: rgba(52, 211, 154, 0.25); }
 .badge.expiring { color: var(--saffron-strong); background: var(--saffron-soft); border-color: rgba(246, 169, 59, 0.25); }
 .badge.expired { color: var(--coral); background: var(--coral-soft); border-color: rgba(255, 107, 107, 0.25); }
+.badge.paused { color: var(--saffron); background: var(--saffron-soft); border-color: rgba(246, 169, 59, 0.3); }
 .badge.neutral { color: var(--text-dim); background: var(--surface-2); border-color: var(--border); }
 .badge.violet { color: var(--violet); background: var(--violet-soft); border-color: rgba(155, 140, 255, 0.25); }
 .badge.sky { color: var(--sky); background: var(--sky-soft); border-color: rgba(76, 194, 255, 0.25); }

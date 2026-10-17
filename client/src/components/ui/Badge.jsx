@@ -11,6 +11,8 @@ const STATUS_MAP = {
   active: { tone: 'active', label: 'Active' },
   expiring: { tone: 'expiring', label: 'Expiring' },
   expired: { tone: 'expired', label: 'Expired' },
+  paused: { tone: 'paused', label: 'On Leave (Paused)' },
+  inactive: { tone: 'neutral', label: 'Inactive' },
 };
 
 /** Subscription status → coloured badge. */

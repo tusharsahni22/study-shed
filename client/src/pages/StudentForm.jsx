@@ -222,6 +222,7 @@ export default function StudentForm() {
               <Field label="Status">
                 <select className="select" value={form.status} onChange={set('status')}>
                   <option value="active">Active</option>
+                  <option value="paused">On leave / break (Paused)</option>
                   <option value="inactive">Inactive</option>
                 </select>
               </Field>
