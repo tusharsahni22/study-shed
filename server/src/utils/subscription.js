@@ -17,10 +17,14 @@ export function planToMonths(plan) {
   return PLAN_MONTHS[plan] ?? 1;
 }
 
-/** Return a new Date `months` after `date` (does not mutate input). */
+/** Return a new Date `months` after `date` (does not mutate input). Preserves day of month. */
 export function addMonths(date, months) {
   const d = new Date(date);
+  const targetDay = d.getDate();
+  d.setDate(1);
   d.setMonth(d.getMonth() + months);
+  const maxDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(targetDay, maxDay));
   return d;
 }
 
